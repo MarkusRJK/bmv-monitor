@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<node name="/org/thelinks/bmvmonitor">
+    <interface name="org.thelinks.bmvmonitor">
+        <method name="quit">
+        </method>
+        <method name="getValue">
+            <arg type="s" name="label" direction="in" />
+            <arg type="v" name="value" direction="out" />
+        </method>
+        <method name="getMeasurement">
+            <arg type="s" name="label" direction="in" />
+            <arg type="(vs)" name="measurement" direction="out" />
+        </method>
+        <method name="getUnits">
+            <arg type="s" name="label" direction="in" />
+            <arg type="s" name="units" direction="out" />
+        </method>
+        <method name="getDescription">
+            <arg type="s" name="label" direction="in" />
+            <arg type="s" name="description" direction="out" />
+        </method>
+        <method name="getAbbreviation">
+            <arg type="s" name="label" direction="in" />
+            <arg type="s" name="abbreviation" direction="out" />
+        </method>
+        <method name="setPrecision">
+            <arg type="s" name="label" direction="in" />
+            <arg type="y" name="precision" direction="in" />
+        </method>
+        <method name="setDelta">
+            <arg type="s" name="label" direction="in" />
+            <arg type="y" name="delta" direction="in" />
+        </method>
+        <property name="Bar" type="y" access="readwrite"/>
+        <signal name="concatenated">
+            <arg type="s" name="concatenatedString" />
+        </signal>
+    </interface>
+</node>

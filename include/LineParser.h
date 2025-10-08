@@ -8,7 +8,8 @@
 
 class LineParser {
 public:
-    LineParser()  = default;
+    LineParser(DeviceCache& c)
+        : mCache(c) {}
 
     ~LineParser() = default;
 
@@ -17,7 +18,7 @@ public:
 private:
     bool isCorrectChecksum(const std::string& line);
 
-    DeviceCache mCache;
+    DeviceCache& mCache;
     uint8_t mChecksum = 0;
 };
 

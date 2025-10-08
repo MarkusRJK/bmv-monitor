@@ -1,17 +1,9 @@
-/* minicom.cpp 
-        A simple demonstration minicom client with Boost asio 
-
-        Parameters: 
-                baud rate 
-                serial port (eg /dev/ttyS0 or COM1) 
-
-        To end the application, send Ctrl-C on standard input 
-
-   compile: 
-        g++ test.cpp -lboost_system -lboost_thread.
-
+/* 
+   To end the application, send Ctrl-C on standard input 
 */ 
 
+#include <systemd/sd-bus.h>
+#include <sdbus-c++/sdbus-c++.h>
 #include <iostream> 
 #include <thread> 
 #include <boost/lexical_cast.hpp>
@@ -19,8 +11,9 @@
 // Enable once compiler is C++20 and use views in parsing instead of getline
 //#include <ranges>
 //#include <string_view>
-#include "CacheObject.h"
+#include "DeviceCache.h"
 #include "SerialPortCommunicator.h"
+#include "bmvmonitor.h"
 
 #ifdef POSIX 
 #include <termios.h> 
@@ -46,7 +39,7 @@ int main(int argc, char* argv[])
 
     if (vm.count("help")) {
         std::cout << desc << std::endl;
-        return 1;
+        return 0;
     }
 
     if (vm.count("cout") && vm["cout"].as<bool>()) {
@@ -71,7 +64,8 @@ int main(int argc, char* argv[])
             return 1; 
         } 
         boost::asio::io_service io_service;
-        LineParser parser;
+        DeviceCache cache;
+        LineParser parser(cache);
         // define an instance of the main class of this program 
         SerialPortCommunicator c(io_service,
                                  boost::lexical_cast<unsigned int>(argv[1]),
@@ -80,16 +74,28 @@ int main(int argc, char* argv[])
         // run the IO service as a separate thread, so the main thread can block on standard input 
         std::thread t([&]{ io_service.run(); });
 
-        while (c.isActive()) { 
-            // check the internal state of the connection to make sure it's still running 
-            char ch; 
-            cin.get(ch); // blocking wait for standard input 
-            if (ch == 3) // ctrl-C to end program 
-                break; 
-            c.write(ch); 
-        } 
-        c.close(); // close the minicom client connection 
-        t.join(); // wait for the IO service thread to close 
+        // version 2.1.x initialisation
+        // Create D-Bus connection to (either the session or system) bus and requests a well-known name on it.
+        sdbus::ServiceName serviceName{"org.thelinks.bmvmonitor"};
+        auto connection = sdbus::createBusConnection(serviceName);
+
+        // Create monitor D-Bus object.
+        sdbus::ObjectPath objectPath{"/org/thelinks/bmvmonitor"};
+        BMVMonitor monitor(*connection, std::move(objectPath), cache);
+
+        connection->enterEventLoop();
+
+//        while (c.isActive()) { 
+//            // check the internal state of the connection to make sure it's still running 
+//            char ch; 
+//            cin.get(ch); // blocking wait for standard input 
+//            if (ch == 3) // ctrl-C to end program 
+//                break; 
+//            c.write(ch); 
+//        } 
+//
+//        c.close(); // close the minicom client connection 
+//        t.join(); // wait for the IO service thread to close 
     } 
     catch (exception& e) { 
         cerr << "Exception: " << e.what() << "\n"; 

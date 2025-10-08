@@ -12,6 +12,7 @@ function logError() {
 function usage() {
     # FIXME: read all customer logos and list in usage
     echo "$0 [Release|Debug|RelWithDebInfo|MinSizeRel]"
+    echo "      [AMD|ARM]"
     echo "      [distclean|clean] [clang-format|clang-format-all]"
     echo "      [all] [test] [package] ..."
     echo "      Build targets must be in right order, i.e. first clean, then ... last package"
@@ -19,13 +20,13 @@ function usage() {
 
 if [ $# -lt 1 ]; then
     usage
-    exit 1
+    exit 0
 fi
 
 BUILD_FOLDER="./build"
 
 echo
-log "Build Serialreader App"
+log "Build bmvmonitor"
 
 #================================================================
 #   Command line option processing
@@ -48,6 +49,19 @@ elif [ ${1^^} == 'RELWITHDEBINFO' ]; then
     shift
 fi
 log "Build type: $BUILD_TYPE"
+
+# default
+ARCH_INC=""
+# first param must be the build type
+if [ ${1^^} == 'AMD' ]; then
+    ARCH_INC=""
+    echo got AMD -> shift
+    shift
+elif [ ${1^^} == 'ARM' ]; then
+    ARCH_INC="-D CMAKE_TOOLCHAIN_FILE=RasPi.cmake"
+    echo got ARM -> shift
+    shift
+fi
 
 DELETE_BUILD_FOLDER=0
 CLEAN_FIRST=""
@@ -79,6 +93,9 @@ while [ $# -gt 0 ]; do
     elif [ ${1^^} == 'PACKAGE' ]; then
         BUILD_TARGETS="${BUILD_TARGETS} --target package"
         shift
+    elif [ ${1^^} == 'RUN' ]; then
+        BUILD_TARGETS="${BUILD_TARGETS} --target run"
+        shift
     else
         BUILD_ARGUMENTS="$*"
         break
@@ -109,13 +126,13 @@ fi
 cd ${BUILD_FOLDER}/$BUILD_TYPE
 # MinGW Make system is a single-config system and build type
 # must be set using -DCMAKE_BUILD_TYPE
-if [ -z "$(ls -A $BUILD_TYPE)" ]; then
+if [ -z "$(ls -A $BUILD_TYPE 2> /dev/null)" ]; then
   log "Building Make System."
   cmake -S ../.. -Wdev -G "Unix Makefiles" \
-        -DCMAKE_TOOLCHAIN_FILE=RasPi.cmake \
-        -DCMAKE_VERBOSE_MAKEFILE:BOOL=TRUE -DCMAKE_RULE_MESSAGES:BOOL=TRUE \
-        -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE \
-        -DCMAKE_BUILD_TYPE:STRING=$BUILD_TYPE
+        -D CMAKE_VERBOSE_MAKEFILE:BOOL=TRUE \
+        -D CMAKE_RULE_MESSAGES:BOOL=TRUE \
+        -D CMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE \
+        -D CMAKE_BUILD_TYPE:STRING=$BUILD_TYPE ${ARCH_INC}
 fi
 #2>/dev/null
 

@@ -57,9 +57,9 @@ void DeviceCache::setByVictronID_(const std::string& key, const std::string& val
     auto anyObjectPtr = iter->second;
     try {
         auto objPtr = std::any_cast<std::shared_ptr<SerializedCacheObject>>(anyObjectPtr);
-        printf("trying to set value for key %s\n", key.c_str());
+//        printf("trying to set value for key %s\n", key.c_str());
         objPtr->setRaw(value);
-        printf("done - value set\n");
+//        printf("done - value set\n");
     } catch(...) {
         std::cerr << "Never set value for " << key << " because ..." << std::endl;
         if (key.compare("AR") == 0) exit(0);
@@ -178,9 +178,8 @@ void DeviceCache::registerComponent(const std::string& key) {
     if (key == "AR") {
         // Monitored values:
         // BMV600, BMV700, Phoenix Inverter
-        //auto obj = std::make_shared<CacheObject<Alarmcode, uint16_t>>("Alarm reason");
         auto obj = std::make_shared<NumericCacheObject<int, uint16_t>>(mReadable, "Alarm reason");
-        addToDictionaries(obj, "alarmReason", "AR", "0xEEFC");
+        addToDictionaries(obj, "alarmReason", key, "0xEEFC");
 
         // // mCache["alarmReason"]         = new CacheObject(1,      "",    "Alarm reason",
         // //                                               {'precision") { 0, 'formatter' : function() 
@@ -189,79 +188,84 @@ void DeviceCache::registerComponent(const std::string& key) {
         // //                                                }});
         // // // the key of the map is a string identifier that comes with the value sent by BMV
     } else if (key == "I") {
-        // BMV600, BMV700, MPPT - Type Sn16; Unit: 0.1A!!!
+        // BMV600, BMV700, MPPT - Type Sn16; Unit: mA
         // On BMV-712 >v4.01 and BMV-70x >v3.09: Type: Sn32; Unit: 0.001A
-        // FIXME: different type depending on BMV...
+        // FIXME: different type depending on BMV version
         auto obj = std::make_shared<NumericCacheObject<double, int16_t>>(mReadable, "Battery Current", 0.001,  "A");
-        addToDictionaries(obj, "batteryCurrent", "I", "0xED8F");
+        addToDictionaries(obj, "batteryCurrent", key, "0xED8F");
 
         // //{'fromHexStr") { (hex) => { return 100 * conv.hexToSint(hex); } });
         // only on BMV-712 > v4.01 and BMV-70x > v3.09: is might be address '0xED8C'
     } else if (key == "IL") {
-        // MPPT
+        // MPPT - Unit: mA
         auto obj = std::make_shared<NumericCacheObject<double, int>>(mReadable, "Load Current", 0.001,  "A");
-        addToDictionaries(obj, "loadCurrent", "IL");
+        addToDictionaries(obj, "loadCurrent", key);
         // FIXME: what about mAddressCache?
     } else if (key == "LOAD") {
         // MPPT - returns string 'ON' or 'OFF'
         auto obj = std::make_shared<AnyCacheObject<Toggle, std::string>>(mReadable, "Load Output State");
-        //auto obj = std::make_shared<TextCacheObject>("Load Output State");
-        //obj->setHexConversion("hexToOnOff");
-        addToDictionaries(obj, "load", "LOAD");
+        addToDictionaries(obj, "load", key);
+        // FIXME: what about mAddressCache?
+    } else if (key == "T") {
+        // BMV700 - Unit: degree Celcius
+        // "---" will be sent if no temp. sensor is connected
+        auto obj = std::make_shared<NumericCacheObject<double, int16_t>>(mReadable, "Battery Temperature", 0.001,  "V");
+        addToDictionaries(obj, "batteryTemp", key);
         // FIXME: what about mAddressCache?
     } else if (key == "V") {
-        // BMV600, BMV700, MPPT, Phoenix Inverter - Display: MAIN; Type: Sn16; Unit: 0.01V!!!
+        // BMV600, BMV700, MPPT, Phoenix Inverter - Display: MAIN; Type: Sn16; Unit: mV
         auto obj = std::make_shared<NumericCacheObject<double, int16_t>>(mReadable, "Main Voltage", 0.001,  "V");
-        //auto serialObj = std::dynamic_pointer_cast<SerializedCacheObject>(obj);
         obj->setDescription("Main (Battery) Voltage");
         obj->setPrecision(-1);
-        addToDictionaries(obj, "upperVoltage", "V");
+        addToDictionaries(obj, "upperVoltage", key);
         // //        'fromHexStr") { (hex) => { return 10 * conv.hexToSint(hex); }});
         // not to be used: mAddressCache.insert("0xED8D", obj);
     } else if (key == "VM") {
-        // BMV700 - Display: MID; Type: Un16; Units: 0.01V!!! (only BMV-702 and BMV-712)
+        // BMV700 - Display: MID; Type: Un16; Units: mV (different on only BMV-702 and BMV-712?)
         auto obj = std::make_shared<NumericCacheObject<double, uint16_t>>(mReadable, "Mid Voltage", 0.001,  "V");
         obj->setDescription("Mid-point Voltage of the Battery Bank");
-        obj->setPrecision(-1);
-        addToDictionaries(obj, "midVoltage", "VM", "0x0382");
+        obj->setPrecision(-1); // FIXME: 0 not -1??
+        addToDictionaries(obj, "midVoltage", key, "0x0382");
     } else if (key == "P") {
         // BMV700 - Type: Sn16; Unit: W
         auto obj = std::make_shared<NumericCacheObject<double, int16_t>>(mReadable, "Instantaneous Power", 1.0, "W");
-        addToDictionaries(obj, "instantPower", "P", "0xED8E");
+        addToDictionaries(obj, "instantPower", key, "0xED8E");
     } else if (key == "SOC") {
-        // BMV600, BMV700 - Type: Un16; Unit: 0.01%!!! for 0x0FFF
-        //                  Type: Un8 for 0xEEB6 ??? (Synchronisation State)
+        // BMV600, BMV700 - Type: Un16 for 0x0FFF; Unit: 0.1%
+        //                  Type: Un8  for 0xEEB6 ??? (Synchronisation State)
         auto obj = std::make_shared<NumericCacheObject<double, uint16_t>>(mReadable, "State of charge", 0.1,    "%");
         obj->setPrecision(-1);
-        addToDictionaries(obj, "stateOfCharge", "SOC", "0x0FFF");
+        addToDictionaries(obj, "stateOfCharge", key, "0x0FFF");
     } else if (key == "VS") {
-        // BMV600, BMV700 - Display: AUX; Type: Sn16; Unit: 0.01V!!! (not available on BMV-702 and BMV-712)
+        // BMV600, BMV700 - Display: AUX; Type: Sn16; Unit: mV (not available on BMV-702 and BMV-712)
         auto obj = std::make_shared<NumericCacheObject<double, int16_t>>(mReadable, "Aux. Voltage", 0.001,  "V");
         obj->setPrecision(-1);
         obj->setDescription("Auxiliary (starter) Voltage");
-        addToDictionaries(obj, "auxVolt", "VS", "0xED7D");
+        addToDictionaries(obj, "auxVolt", key, "0xED7D");
     } else if (key == "CE") {
-        // BMV600, BMV700 - Type: Sn32; Unit: 0.1 Ah!!!
+        // BMV600, BMV700 - Type: Sn32; Unit: mAh
+        //                  if not synchronised, statistics have no meaning and "---" is sent
         auto obj = std::make_shared<NumericCacheObject<double, int32_t>>(mReadable, "Consumed", 0.001,  "Ah");
         obj->setDescription("Consumed Ampere Hours");
-        addToDictionaries(obj, "consumedAh", "CE", "0xEEFF");
+        addToDictionaries(obj, "consumedAh", key, "0xEEFF");
     } else if (key == "DM") {
         // BMV700 - Display: MID; Type: Sn16; Units: 0.1 %
-        auto obj = std::make_shared<NumericCacheObject<double, int16_t>>(mReadable, "Mid Deviation", 1.0,  "%");
+        // FIXME: was 1.0 as nativeToValue, corrected to 0.1
+        auto obj = std::make_shared<NumericCacheObject<double, int16_t>>(mReadable, "Mid Deviation", 0.1,  "%");
         obj->setDescription("Mid-point Deviation of the Battery Bank");
-        addToDictionaries(obj, "midDeviation", "DM", "0x0383");
+        addToDictionaries(obj, "midDeviation", key, "0x0383");
     } else if (key == "VPV") {
-        // MPPT
+        // MPPT - Unit: mV
         auto obj = std::make_shared<NumericCacheObject<double, int>>(mReadable, "Panel Voltage", 0.001,  "V");
-        addToDictionaries(obj, "panelVoltage", "VPV");
+        addToDictionaries(obj, "panelVoltage", key);
     } else if (key == "PPV") {
-        // MPPT
+        // MPPT - Unit: W
         auto obj = std::make_shared<NumericCacheObject<double, int>>(mReadable, "Panel Power", 1.0,  "W");
-        addToDictionaries(obj, "panelPower", "PPV");
+        addToDictionaries(obj, "panelPower", key);
     } else if (key == "CS") {
         // MPPT, Phoenix Inverter
         auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable, "State of Operation");
-        addToDictionaries(obj, "stateOfOperation", "CS", "");
+        addToDictionaries(obj, "stateOfOperation", key);
 
         // mCache.insert("stateOfOperation", obj);
         // // mCache["stateOfOperation"]    = new CacheObject(0,      "",    "State of Operation",
@@ -273,7 +277,7 @@ void DeviceCache::registerComponent(const std::string& key) {
     } else if (key == "PID") {
         // BMV700, MPPT, Phoenix Inverter
         auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable, "Product ID");
-        addToDictionaries(obj, "productId", "PID");
+        addToDictionaries(obj, "productId", key);
 
         // // {'formatter' : function() 
         // //         {
@@ -284,141 +288,140 @@ void DeviceCache::registerComponent(const std::string& key) {
         // BMV600, BMV700, MPPT, Phoenix Inverter
         auto obj = std::make_shared<NumericCacheObject<double, int>>(mReadable, "Firmware version", 0.01);
         obj->setPrecision(-2);
-        addToDictionaries(obj, "version", "FW");
+        addToDictionaries(obj, "version", key);
     } else 
     // History values
     if (key == "H1") {
-        // BMV600, BMV700
+        // BMV600, BMV700 - Units: mAh
         auto obj = std::make_shared<NumericCacheObject<double, int>>(mReadable, "Deepest Discharge", 0.001,  "Ah");
         obj->setPrecision(-2);
         obj->setDescription("Depth of deepest discharge");
-        addToDictionaries(obj, "deepestDischarge", "H1", "0x0300");
+        addToDictionaries(obj, "deepestDischarge", key, "0x0300");
 
         // //                          'fromHexStr' : (hex) => { return 100 * conv.hexToSint(hex); } });
     } else if (key == "H2") {
-        // BMV600, BMV700
+        // BMV600, BMV700 - Units: mAh
         auto obj = std::make_shared<NumericCacheObject<double, int>>(mReadable, "Last Discharge", 0.001,  "Ah");
         obj->setPrecision(0);
         obj->setDescription("Depth of last discharge");
-        addToDictionaries(obj, "maxAHsinceLastSync", "H2", "0x0301");
+        addToDictionaries(obj, "maxAHsinceLastSync", key, "0x0301");
 
         // //'fromHexStr") { (hex) => { return 100 * conv.hexToSint(hex); } });
     } else if (key == "H3") {
-        // BMV600, BMV700
+        // BMV600, BMV700 - Units: mAh
         auto obj = std::make_shared<NumericCacheObject<double, int>>(mReadable, "Avg. Discharge", 0.001,  "Ah");
         obj->setPrecision(0);
         obj->setDescription("Depth of average discharge");
-        addToDictionaries(obj, "avgDischarge", "H3", "0x0302");
+        addToDictionaries(obj, "avgDischarge", key, "0x0302");
 
         // //'fromHexStr' : (hex) => { return 100 * conv.hexToSint(hex); }});
     } else if (key == "H4") {
         // BMV600, BMV700
         auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable, "Charge Cycles");
         obj->setDescription("Number of charge cycles");
-        addToDictionaries(obj, "chargeCycles", "H4", "0x0303");
+        addToDictionaries(obj, "chargeCycles", key, "0x0303");
     } else if (key == "H5") {
         // BMV600, BMV700
         auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable, "Full Discharges");
         obj->setDescription("Number of full discharges");
-        addToDictionaries(obj, "fullDischarges", "H5", "0x0304");
+        addToDictionaries(obj, "fullDischarges", key, "0x0304");
     } else if (key == "H6") {
-        // BMV600, BMV700
+        // BMV600, BMV700 - Units: mAh
         auto obj = std::make_shared<NumericCacheObject<double, int>>(mReadable, "Cum. Ah drawn", 0.001,  "Ah");
-        addToDictionaries(obj, "drawnAh", "H6", "0x0305");
+        addToDictionaries(obj, "drawnAh", key, "0x0305");
         // // { 'fromHexStr") { (hex) => { return 100 * conv.hexToSint(hex); }});
     } else if (key == "H7") {
-        // BMV600, BMV700
+        // BMV600, BMV700 - Units: mV
         auto obj = std::make_shared<NumericCacheObject<double, int>>(mReadable, "Min. Voltage", 0.001,  "V");
         obj->setDescription("Minimum Main (Battery) Voltage");
-        addToDictionaries(obj, "minVoltage", "H7", "0x0306");
+        addToDictionaries(obj, "minVoltage", key, "0x0306");
         // // 'fromHexStr") { (hex) => { return 10 * conv.hexToSint(hex); }});
     } else if (key == "H8") {
-        // BMV600, BMV700
+        // BMV600, BMV700 - Units: mV
         auto obj = std::make_shared<NumericCacheObject<double, int>>(mReadable, "Max. Voltage", 0.001,  "V");
         obj->setDescription("Maximum Main (Battery) Voltage");
-        addToDictionaries(obj, "maxVoltage", "H8", "0x0307");
+        addToDictionaries(obj, "maxVoltage", key, "0x0307");
         // // 'fromHexStr") { (hex) => { return 10 * conv.hexToSint(hex); }});
     } else if (key == "H9") {
-        // BMV600, BMV700
+        // BMV600, BMV700 - Units: s (seconds)
         auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable, "Time since Full Charge", 1.0,  "s");
         obj->setDescription("Number of seconds since full charge");
-        addToDictionaries(obj, "timeSinceFullCharge", "H9", "0x0308");
+        addToDictionaries(obj, "timeSinceFullCharge", key, "0x0308");
     } else if (key == "H10") {
         // BMV600, BMV700
         auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable, "Auto. Syncs", 1);
         obj->setDescription("Number of automatic synchronisations");
-        addToDictionaries(obj, "noAutoSyncs", "H10", "0x0309");
+        addToDictionaries(obj, "noAutoSyncs", key, "0x0309");
     } else if (key == "H11") {
         // BMV600, BMV700
         // FIXME: precision: 0 not working in low/high volt alarms (particularly 0 is the issue)
         auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable, "Low Volt. Alarms", 1);
-        obj->setPrecision(-1);
+        obj->setPrecision(-1); // FIXME: should it not be 0!!!
         obj->setDescription("Number of Low Main Voltage Alarms");
-        addToDictionaries(obj, "lowVoltageAlarms", "H11", "0x030A");
+        addToDictionaries(obj, "lowVoltageAlarms", key, "0x030A");
     } else if (key == "H12") {
         // BMV600, BMV700
         auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable, "High Volt. Alarms", 1);
-        obj->setPrecision(-1);
+        obj->setPrecision(-1); // FIXME: should it not be 0!!!
         obj->setDescription("Number of High Main Voltage Alarms");
-        addToDictionaries(obj, "highVoltageAlarms", "H12", "0x030B");
+        addToDictionaries(obj, "highVoltageAlarms", key, "0x030B");
     } else if (key == "H13") {
         // BMV600
         auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable, "Low Aux. Volt. Alarms", 1);
         obj->setDescription("Number of Low Auxiliary Voltage Alarms");
-        addToDictionaries(obj, "lowAuxVoltageAlarms", "H13", "0x030C");
-        // FIXME: address?
+        addToDictionaries(obj, "lowAuxVoltageAlarms", key, "0x030C");
     } else if (key == "H14") {
         // BMV600
         auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable, "High Aux. Volt. Alarms", 1,     "");
         obj->setDescription("Number of High Aux. Voltage Alarms");
-        addToDictionaries(obj, "highAuxVoltageAlarms", "H14", "0x030D");
+        addToDictionaries(obj, "highAuxVoltageAlarms", key, "0x030D");
     } else if (key == "H15") {
-        // BMV600, BMV700
+        // BMV600, BMV700 - Units: mV
         auto obj = std::make_shared<NumericCacheObject<double, int>>(mReadable, "Min. Aux. Volt.", 0.001, "V");
         obj->setDescription("Minimal Auxiliary (Battery) Voltage");
-        addToDictionaries(obj, "minAuxVoltage", "H15", "0x030E");
+        addToDictionaries(obj, "minAuxVoltage", key, "0x030E");
         // // 'fromHexStr") { (hex) => { return 10 * conv.hexToSint(hex); }});
     } else if (key == "H16") {
-        // BMV600, BMV700
+        // BMV600, BMV700 - Units: mV
         auto obj = std::make_shared<NumericCacheObject<double, int>>(mReadable, "Min. Aux. Volt.", 0.001, "V");
         obj->setDescription("Maximal Auxiliary (Battery) Voltage");
-        addToDictionaries(obj, "maxAuxVoltage", "H16", "0x030F");
+        addToDictionaries(obj, "maxAuxVoltage", key, "0x030F");
         // // 'fromHexStr") { (hex) => { return 10 * conv.hexToSint(hex); }});
     } else if (key == "H17") {
-        // BMV700
+        // BMV700 - Units: 0.01 kWh
         auto obj = std::make_shared<NumericCacheObject<double, int>>(mReadable, "Drawn Energy", 0.01,  "kWh");
         obj->setDescription("Amount of Discharged Energy");
-        addToDictionaries(obj, "dischargeEnergy", "H17", "0x0310");
+        addToDictionaries(obj, "dischargeEnergy", key, "0x0310");
     } else if (key == "H18") {
-        // BMV700
+        // BMV700 - Units: 0.01 kWh
         auto obj = std::make_shared<NumericCacheObject<double, int>>(mReadable, "Absorbed Energy", 0.01,  "kWh");
         obj->setDescription("Amount of Charged Energy");
-        addToDictionaries(obj, "absorbedEnergy", "H18", "0x0311");
+        addToDictionaries(obj, "absorbedEnergy", key, "0x0311");
     } else if (key == "H19") {
-        // MPPT
+        // MPPT - Units: 0.01 kWh
         auto obj = std::make_shared<NumericCacheObject<double, int>>(mReadable, "Yield Total", 0.01,  "kWh");
         obj->setDescription("User resettable counter");
-        addToDictionaries(obj, "yieldTotal", "H19", "0x0312");
+        addToDictionaries(obj, "yieldTotal", key, "0x0312");
     } else if (key == "H20") {
-        // MPPT
+        // MPPT - Units: 0.01 kWh
         auto obj = std::make_shared<NumericCacheObject<double, int>>(mReadable, "Yield Today", 0.01,  "kWh");
-        addToDictionaries(obj, "yieldToday", "H20", "0x0313");
+        addToDictionaries(obj, "yieldToday", key, "0x0313");
     } else if (key == "H21") {
-        // MPPT
-        auto obj = std::make_shared<NumericCacheObject<double, int>>(mReadable, "Max. Power Today", 1.0,   "W");
-        addToDictionaries(obj, "maxPowerToday", "H21", "0x0314");
+        // MPPT - Units: W
+        auto obj = std::make_shared<NumericCacheObject<double, int>>(mReadable, "Max. Power Today", 1,  "W");
+        addToDictionaries(obj, "maxPowerToday", key, "0x0314");
     } else if (key == "H22") {
-        // MPPT
+        // MPPT - Units: 0.01 kWh
         auto obj = std::make_shared<NumericCacheObject<double, int>>(mReadable, "Yield Yesterday", 0.01,  "kWh");
-        addToDictionaries(obj, "yieldYesterday", "H22", "0x0315");
+        addToDictionaries(obj, "yieldYesterday", key, "0x0315");
     } else if (key == "H23") {
-        // MPPT
-        auto obj = std::make_shared<NumericCacheObject<double, int>>(mReadable, "Max. Power Yesterday", 1.0,   "W");
-        addToDictionaries(obj, "maxPowerYesterday", "H23", "0x0316");
+        // MPPT - Units: W
+        auto obj = std::make_shared<NumericCacheObject<double, int>>(mReadable, "Max. Power Yesterday", 1, "W");
+        addToDictionaries(obj, "maxPowerYesterday", key, "0x0316");
     } else if (key == "ERR") {
         // MPPT
-        auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable, "MPPT Error Code", 1,     "");
-        addToDictionaries(obj, "errorCode", "ERR", "");
+        auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable, "MPPT Error Code");
+        addToDictionaries(obj, "errorCode", key);
 
         // mCache.insert("errorCode", obj);
         // // {'formatter' : function() 
@@ -429,39 +432,40 @@ void DeviceCache::registerComponent(const std::string& key) {
     } else if (key == "WARN") {
         // Phoenix Inverter
         // FIXME: no type was specified here
-        auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable, "Warning Reason", 0);
-        addToDictionaries(obj, "warnReason", "WARN");
+        auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable, "Warning Reason");
+        addToDictionaries(obj, "warnReason", key);
     } else if (key == "SER#") {
         // MPPT, Phoenix Inverter
         // FIXME: no type was specified here
-        auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable, "Serial Number", 0);
-        addToDictionaries(obj, "serialNumber", "SER#");
+        auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable, "Serial Number");
+        addToDictionaries(obj, "serialNumber", key);
     } else if (key == "HSDS") {
-        // BlueSolar MPPT - returns 0WARNWARNWARN..364
-        auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable, "Day Sequence Number", 1);
-        addToDictionaries(obj, "daySequenceNumber", "HSDS");
+        // BlueSolar MPPT v1.16++ - returns 0WARNWARNWARN..364
+        auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable, "Day Sequence Number");
+        addToDictionaries(obj, "daySequenceNumber", key);
     } else if (key == "MODE") {
         // Phoenix Inverter
-        auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable, "Device Mode", 1);
-        addToDictionaries(obj, "deviceMode", "MODE", "");
+        auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable, "Device Mode");
+        addToDictionaries(obj, "deviceMode", key);
 
         // // {'formatter' : function() 
         // //         {
         // //             return this.getDeviceModeText(this.value);
         // //         }});
     } else if (key == "AC_OUT_V") {
-        // Phoenix Inverter
+        // Phoenix Inverter - Units: 0.01V
         auto obj = std::make_shared<NumericCacheObject<double, int>>(mReadable, "AC Output Voltage", 0.01,"V");
-        addToDictionaries(obj, "ACoutVoltage", "AC_OUT_V");
+        addToDictionaries(obj, "ACoutVoltage", key);
     } else if (key == "AC_OUT_I") {
-        // Phoenix Inverter
+        // Phoenix Inverter - Units: 0.1A
         auto obj = std::make_shared<NumericCacheObject<double, int>>(mReadable, "AC Output Current", 0.1, "A");
-        addToDictionaries(obj, "ACoutCurrent", "AC_OUT_I", "");
+        addToDictionaries(obj, "ACoutCurrent", key);
     } else if (key == "TTG") {
         // BMV600, BMV700 - Type: Un16; Units: minutes
+        //                  when battery is nt discharging, TTG is infinite -> -1
         auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable, "Time to go", 60.0,  "s");
         obj->setDescription("Time until discharged");
-        addToDictionaries(obj, "timeToGo", "TTG", "0x0FFE");
+        addToDictionaries(obj, "timeToGo", key, "0x0FFE");
     } else if (key == "Alarm") {
         // BMV600, BMV700 - returns string 'ON' or 'OFF'
         //FIXME: no type was given
@@ -470,15 +474,15 @@ void DeviceCache::registerComponent(const std::string& key) {
         addToDictionaries(obj, "alarmState", "Alarm");
         // // 'fromHexStr") { conv.hexToOnOff
     } else if (key == "Relay") {
-        // BMV600, BMV700, SmartSolar MPPT - returns string 'ON' or 'OFF'
+        // BMV600, BMV700, SmartSolar MPPT v1.17++ - returns string 'ON' or 'OFF'
         auto obj = std::make_shared<AnyCacheObject<Toggle, std::string>>(mReadable, "Relay state");
-        addToDictionaries(obj, "relayState", "Relay", "0x034E");
+        addToDictionaries(obj, "relayState", key, "0x034E");
         // FIXME: how does this value behave with the inversion of the relay?
     } else if (key == "BMV") {
         // BMV600, BMV700
         //FIXME: no type was given
-        auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable, "Model Description", 0,   "");
-        addToDictionaries(obj, "modelDescription", "BMV", "");
+        auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable, "Model Description");
+        addToDictionaries(obj, "modelDescription", key, "");
     } else {
         // FIXME: the following keys 'Cap', 'CV', 'TC' etc do not exist in the
         //        frequent updates...
@@ -489,3 +493,102 @@ void DeviceCache::registerComponent(const std::string& key) {
     }
 }
 
+// creates and maps those components that are not covered by the frequent
+// updates coming from the device
+void DeviceCache::mapStaticComponents() {
+    // Battery settings: all of Type Un16 except UserCurrentZero
+    {
+        auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable, "Battery capacity", 1,  "Ah");
+        addToDictionaries(obj, "capacity", "", "0x1000");
+    }
+    {
+        auto obj = std::make_shared<NumericCacheObject<double, int>>(mReadable,       "Charged voltage", 0.1,   "V");
+        addToDictionaries(obj, "chargedVoltage", "0x1001");
+    }
+    {
+        auto obj = std::make_shared<NumericCacheObject<double, int>>(mReadable,       "Tail current", 0.1,   "%");
+        addToDictionaries(obj, "tailCurrent", "0x1002");
+    }
+    {
+        auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable,     "Charged detection time", 1,   "min");
+        addToDictionaries(obj, "chargedDetectTime", "0x1003");
+    }
+    {
+        auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable,       "Charge efficiency", 1,   "%");
+        addToDictionaries(obj, "chargeEfficiency", "0x1004");
+    }
+    {
+        auto obj = std::make_shared<NumericCacheObject<double, int>>(mReadable,       "Peukert coefficiency", 0.01);
+        addToDictionaries(obj, "peukertCoefficient", "0x1005");
+    }
+    {
+        auto obj = std::make_shared<NumericCacheObject<double, int>>(mReadable,      "Current threshold", 0.01,    "A");
+        addToDictionaries(obj, "currentThreshold", "0x1006");
+    }
+    {
+        auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable,    "Time to go Delta T", 1,    "min");
+        addToDictionaries(obj, "timeToGoDelta", "0x1007");
+    }
+    {
+        auto obj = std::make_shared<NumericCacheObject<double, int>>(mReadable,      "Relay low SOC", 0.1,    "%");
+        addToDictionaries(obj, "relayLowSOC", "0x1008");
+    }
+    {
+        auto obj = std::make_shared<NumericCacheObject<double, int>>(mReadable,     "Relay low SOC clear", 0.1,"%");
+        // UCZ is of Type: Sn16; Read-Only
+        addToDictionaries(obj, "relayLowSOCClear", "0x1009");
+    }
+    {
+        auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable,       "User current zero");
+        addToDictionaries(obj, "userCurrentZero", "0x1034");
+    }
+    {
+        auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable,        "Relay mode");
+        addToDictionaries(obj, "relayMode", "0x034F");
+    }
+    {
+        // only available on BMV-702 and BMV-712: Type: Un16; Unit: 0.01 K!!!
+        auto obj = std::make_shared<NumericCacheObject<double, uint16_t>>(mReadable,     "Battery Temperature", 0.01, "°C");
+        addToDictionaries(obj, "batteryTemp", "0xEDEC");
+    }
+    //auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable,        "Synchronisation State", 1,   "");
+    //addToDictionaries(obj, "stateOfCharge", "0xEEB6"); // FIXME: what is this really?
+
+    // Show/don't show certain parameters on BMV
+    {
+        auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable,        "Show voltage");
+        addToDictionaries(obj, "showVoltage", "0xEEE0");
+    }
+    {
+        auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable,        "Show auxiliary voltage");
+        addToDictionaries(obj, "showAuxVoltage", "0xEEE1");
+    }
+    {
+        auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable,        "Show mid voltage");
+        addToDictionaries(obj, "showMidVoltage", "0xEEE2");
+    }
+    {
+        auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable,        "Show current");
+        addToDictionaries(obj, "showCurrent", "0xEEE3");
+    }
+    {
+        auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable,        "Show consumed AH");
+        addToDictionaries(obj, "showConsumedAH", "0xEEE4");
+    }
+    {
+        auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable,        "Show SOC");
+        addToDictionaries(obj, "showSOC", "0xEEE5");
+    }
+    {
+        auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable,        "Show time to go");
+        addToDictionaries(obj, "showTimeToGo", "0xEEE6");
+    }
+    {
+        auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable,        "Show temperature");
+        addToDictionaries(obj, "showTemperature", "0xEEE7");
+    }
+    {
+        auto obj = std::make_shared<NumericCacheObject<int, int>>(mReadable,        "Show power");
+        addToDictionaries(obj, "showPower", "0xEEE8");
+    }
+};

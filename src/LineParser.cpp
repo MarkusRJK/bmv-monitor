@@ -10,11 +10,11 @@ void LineParser::parse(std::istream& str) {
     
     std::string line;
     // a line from Victron BMV is
-    // <cmd>\t<value>\r\n
+    // \r\n<cmd>\t<value>
     // command is a char string
     // value is a character string that represents either
     //       - an integer 
-    //       - a bool (given as string 'ON' or 'OFF
+    //       - a bool (given as string 'ON' or 'OFF)
     //      
     // TODO: use views and ranges instead of getline... -> C++20
     std::getline(str, line, '\n'); // scans till \n and swallows trailing \n
@@ -41,66 +41,66 @@ void LineParser::parse(std::istream& str) {
         std::string value = line.substr(valueStart, line.length()-1-valueStart);
         //std::cout << name << ":" << name.length() 
         //          << " = " << value << ":" << value.length() << std::endl;
-        std::cout << "*****************************************" << std::endl;
-        std::cout << name << " = " << value << std::endl;
-        printf("registering\n");
+//        std::cout << "*****************************************" << std::endl;
+//        std::cout << name << " = " << value << std::endl;
+//        printf("registering\n");
         mCache.registerComponent(name);
-        printf("setting %s\n", name.c_str());
+//        printf("setting %s\n", name.c_str());
         mCache.setByVictronID_(name, value);
         
-        mCache.getByVictronID_<int>("AR");
-        mCache.getByVictronID_<double>("I");
-        mCache.getByVictronID_<double>("IL");
-        mCache.getByVictronID_<std::string>("LOAD");
-        mCache.getByVictronID_<double>("V"); // working
-        mCache.getByVictronID_<double>("VM"); // working
-        mCache.getByVictronID_<double>("P");
-        mCache.getByVictronID_<double>("SOC");
-        mCache.getByVictronID_<double>("VS");
-        mCache.getByVictronID_<double>("CE");
-        mCache.getByVictronID_<double>("DM");
+        // mCache.getByVictronID_<int>("AR");
+        // mCache.getByVictronID_<double>("I");
+        // mCache.getByVictronID_<double>("IL");
+        // mCache.getByVictronID_<std::string>("LOAD");
+        // mCache.getByVictronID_<double>("V"); // working
+        // mCache.getByVictronID_<double>("VM"); // working
+        // mCache.getByVictronID_<double>("P");
+        // mCache.getByVictronID_<double>("SOC");
+        // mCache.getByVictronID_<double>("VS");
+        // mCache.getByVictronID_<double>("CE");
+        // mCache.getByVictronID_<double>("DM");
 
-        mCache.getByVictronID_<double>("VPV");
-        mCache.getByVictronID_<double>("PPV");
-        mCache.getByVictronID_<double>("CS");
-        mCache.getByVictronID_<int>("PID");
-        mCache.getByVictronID_<double>("FW");
-        mCache.getByVictronID_<double>("H1");
-        mCache.getByVictronID_<double>("H2");
-        mCache.getByVictronID_<double>("H3");
-        mCache.getByVictronID_<int>("H4");
-        mCache.getByVictronID_<int>("H5");
-        mCache.getByVictronID_<double>("H6");
-        mCache.getByVictronID_<double>("H7");
-        mCache.getByVictronID_<double>("H8");
-        mCache.getByVictronID_<int>("H9");
-        mCache.getByVictronID_<int>("H10");
-        mCache.getByVictronID_<int>("H11");
-        mCache.getByVictronID_<int>("H12");
-        mCache.getByVictronID_<double>("H13");
-        mCache.getByVictronID_<double>("H14");
-        mCache.getByVictronID_<double>("H15");
-        mCache.getByVictronID_<double>("H16");
-        mCache.getByVictronID_<double>("H17");
-        mCache.getByVictronID_<double>("H18");
-        mCache.getByVictronID_<double>("H19");
-        mCache.getByVictronID_<double>("H20");
-        mCache.getByVictronID_<double>("H21");
-        mCache.getByVictronID_<double>("H22");
-        mCache.getByVictronID_<double>("H23");
-        mCache.getByVictronID_<int>("ERR");
-        mCache.getByVictronID_<int>("WARN");
-        mCache.getByVictronID_<int>("SER#");
-        mCache.getByVictronID_<int>("HSDS");
-        mCache.getByVictronID_<int>("MODE");
-        mCache.getByVictronID_<double>("AC_OUT_V");
-        mCache.getByVictronID_<double>("AC_OUT_I");
-        mCache.getByVictronID_<int>("TTG");
-        // TODO: move over to enums ON/OFF
-        mCache.getByVictronID_<Toggle>("Alarm");
-        //mCache.getByVictronID_<std::string, std::string>("Relay");
-        mCache.getByVictronID_<Toggle>("Relay");
-        mCache.getByVictronID_<int>("BMV");
+        // mCache.getByVictronID_<double>("VPV");
+        // mCache.getByVictronID_<double>("PPV");
+        // mCache.getByVictronID_<double>("CS");
+        // mCache.getByVictronID_<int>("PID");
+        // mCache.getByVictronID_<double>("FW");
+        // mCache.getByVictronID_<double>("H1");
+        // mCache.getByVictronID_<double>("H2");
+        // mCache.getByVictronID_<double>("H3");
+        // mCache.getByVictronID_<int>("H4");
+        // mCache.getByVictronID_<int>("H5");
+        // mCache.getByVictronID_<double>("H6");
+        // mCache.getByVictronID_<double>("H7");
+        // mCache.getByVictronID_<double>("H8");
+        // mCache.getByVictronID_<int>("H9");
+        // mCache.getByVictronID_<int>("H10");
+        // mCache.getByVictronID_<int>("H11");
+        // mCache.getByVictronID_<int>("H12");
+        // mCache.getByVictronID_<double>("H13");
+        // mCache.getByVictronID_<double>("H14");
+        // mCache.getByVictronID_<double>("H15");
+        // mCache.getByVictronID_<double>("H16");
+        // mCache.getByVictronID_<double>("H17");
+        // mCache.getByVictronID_<double>("H18");
+        // mCache.getByVictronID_<double>("H19");
+        // mCache.getByVictronID_<double>("H20");
+        // mCache.getByVictronID_<double>("H21");
+        // mCache.getByVictronID_<double>("H22");
+        // mCache.getByVictronID_<double>("H23");
+        // mCache.getByVictronID_<int>("ERR");
+        // mCache.getByVictronID_<int>("WARN");
+        // mCache.getByVictronID_<int>("SER#");
+        // mCache.getByVictronID_<int>("HSDS");
+        // mCache.getByVictronID_<int>("MODE");
+        // mCache.getByVictronID_<double>("AC_OUT_V");
+        // mCache.getByVictronID_<double>("AC_OUT_I");
+        // mCache.getByVictronID_<int>("TTG");
+        // // TODO: move over to enums ON/OFF
+        // mCache.getByVictronID_<Toggle>("Alarm");
+        // //mCache.getByVictronID_<std::string, std::string>("Relay");
+        // mCache.getByVictronID_<Toggle>("Relay");
+        // mCache.getByVictronID_<int>("BMV");
 
         //mCache.printByVictronID(name);
         
@@ -137,10 +137,11 @@ bool LineParser::isCorrectChecksum(const std::string& line) {
                       << "Feck Wrong checksum " << std::hex
                       << "calc 0x" << static_cast<int>(mChecksum)
                       << std::endl << std::endl;
+            //sleep(5);
             mChecksum = 0;
             return false;
         }
-        else std::cout << "CHECKSUM OK" << std::endl;
+//        else std::cout << "CHECKSUM OK" << std::endl;
     }
     return isChecksum; 
 }

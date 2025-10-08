@@ -7,7 +7,13 @@
 #set(CMAKE_STAGING_PREFIX $ENV{HOME}/RPi-dev/staging-arm7-rpi2)
 
 # Compiler must be set to arm
-set(RPI_GCC "arm-linux-gnueabihf")
+# RasPi arm is 64-bit but can run 32-bit code (needs static linking)
+#set(RPI_GCC "arm-linux-gnueabihf")
+set(RPI_GCC "aarch64-linux-gnu")
+
+# do we need this?
+#set(PKG_CONFIG_PATH /usr/lib/${RPI_GCC}/pkgconfig)
+
 #set(CMAKE_C_COMPILER   ${RPI_GCC}-gcc CACHE FILEPATH "C compiler")
 set(CMAKE_CXX_COMPILER ${RPI_GCC}-g++ CACHE FILEPATH "C++ compiler")
 # 64-bit compiler
@@ -30,7 +36,7 @@ set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 # adjust the default behavior of the FIND_XXX() commands:
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 
-set(ENV{PKG_CONFIG_LIBDIR} "/usr/lib/arm-linux-gnueabihf/pkgconfig")
+set(ENV{PKG_CONFIG_LIBDIR} "/usr/lib/${RPI_GCC}/pkgconfig")
 
 set(ENV{PKG_CONFIG_SYSROOT_DIR} "${CMAKE_SYSROOT}")
 
